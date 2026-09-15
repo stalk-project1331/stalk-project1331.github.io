@@ -1,0 +1,1055 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>STALK</title>
+<meta name="description" content="STALK — десктопное приложение для визуализации OSINT-расследований: карточки, связи между ними, EXIF-анализ и рабочие кейсы." />
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg-0:#111111;
+    --bg-1:#111111;
+    --bg-2:#10171B;
+    --bg-3:#141C22;
+    --border:rgba(255,255,255,0.10);
+    --text-hi:#F3F6F8;
+    --text-mid:#B9C5CF;
+    --text-low:#7A8594;
+    --accent:#FFFFFF;
+    --accent-soft:rgba(255,255,255,0.08);
+    --glass:rgba(255,255,255,0.05);
+    --glass-strong:rgba(255,255,255,0.08);
+    --shadow:0 16px 45px rgba(0,0,0,0.32);
+
+    --font-head:'Space Grotesk', 'Segoe UI', sans-serif;
+    --font-body:'Inter', 'Segoe UI', sans-serif;
+    --font-mono:'JetBrains Mono', 'Consolas', monospace;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg-0);
+    color:var(--text-hi);
+    font-family:var(--font-body);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  img{max-width:100%; display:block;}
+  a{color:inherit;}
+
+  .wrap{max-width:1160px; margin:0 auto; padding:0 24px;}
+
+  .board-bg{
+    background-color:var(--bg-0);
+    background-image:radial-gradient(rgba(255,255,255,0.13) 1px, transparent 1px);
+    background-size:24px 24px;
+  }
+
+  .site-shell{
+    min-height:100vh;
+    padding:0 0 48px;
+  }
+
+  header{
+    position:sticky; top:0; z-index:20;
+    backdrop-filter:blur(10px);
+    background:#131313;
+    border-bottom:1px solid var(--border);
+  }
+  nav{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 0;
+  }
+  .logo{
+    font-family:var(--font-head);
+    font-size:22px;
+    letter-spacing:-0.04em;
+    font-weight:700;
+    text-transform:uppercase;
+  }
+  .nav-links{display:flex; gap:26px; list-style:none; color:var(--text-mid); font-size:14px;}
+  .nav-links a{text-decoration:none;}
+  .nav-links a:hover{color:var(--text-hi);}
+  .nav-btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:10px 16px; border-radius:10px; text-decoration:none; font-weight:600;
+    background:rgba(255,255,255,0.04); border:1px solid var(--border); color:var(--text-hi);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.08), 0 10px 20px rgba(0,0,0,0.2);
+  }
+  .nav-btn.primary{
+    background:rgba(255,255,255,0.12); color:var(--text-hi); border-color:rgba(255,255,255,0.12);
+  }
+  .lang-switch{
+    display:flex; align-items:center; gap:8px; margin-left:14px; padding-left:14px; border-left:1px solid var(--border);
+  }
+  .lang-btn{
+    border:1px solid var(--border); background:rgba(255,255,255,0.02); color:var(--text-mid);
+    border-radius:8px; padding:7px 9px; font-size:11px; letter-spacing:0.08em; text-transform:uppercase;
+    cursor:pointer; font-family:var(--font-mono); transition:all .18s ease;
+  }
+  .lang-btn.is-active{
+    background:rgba(255,255,255,0.12); color:var(--text-hi); border-color:rgba(255,255,255,0.18);
+  }
+  @media (max-width:720px){ .nav-links{display:none;} }
+
+  .hero{
+    padding:80px 0 54px;
+  }
+  .hero-inner{
+    display:grid; grid-template-columns:1.15fr 0.85fr; gap:44px; align-items:center;
+  }
+  @media (max-width:900px){ .hero-inner{grid-template-columns:1fr;} }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:10px;
+    padding:7px 12px; border-radius:999px; border:1px solid var(--border);
+    background:rgba(255,255,255,0.02); color:var(--text-mid); font-size:12px; letter-spacing:0.08em; text-transform:uppercase;
+    font-family:var(--font-mono);
+  }
+  .eyebrow::before{
+    content:""; width:8px; height:8px; border-radius:50%; background:var(--accent-2); box-shadow:0 0 0 5px rgba(108,210,140,0.12);
+  }
+  h1{
+    margin-top:18px;
+    font-family:var(--font-head);
+    font-size:clamp(38px, 5vw, 72px);
+    line-height:0.95;
+    letter-spacing:-0.06em;
+    max-width:11ch;
+  }
+  .lede{
+    margin-top:18px; font-size:18px; color:var(--text-mid); max-width:54ch;
+  }
+  .cta-row{
+    margin-top:28px; display:flex; flex-wrap:wrap; gap:12px; align-items:center;
+  }
+  .btn{
+    display:inline-flex; align-items:center; gap:10px; text-decoration:none;
+    padding:13px 20px; border-radius:12px; font-weight:600; border:1px solid rgba(255,255,255,0.10);
+    background:rgba(255,255,255,0.04); color:var(--text-hi); box-shadow:inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 30px rgba(0,0,0,0.22);
+    transition:transform .18s ease, background .18s ease, border-color .18s ease;
+  }
+  .btn:hover{transform:translateY(-1px); background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.16);}
+  .btn.primary{
+    background:var(--accent); color:#0A0D10; border-color:transparent; box-shadow:0 14px 30px rgba(255,255,255,0.12), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+  .btn.primary:hover{background:rgba(255,255,255,0.95);}
+  .btn.secondary{background:rgba(255,255,255,0.04); color:var(--text-hi);}
+  .btn svg{width:16px; height:16px; flex:none;}
+  .meta-line{
+    margin-top:16px; font-size:13px; color:var(--text-low); font-family:var(--font-mono);
+  }
+
+  .platform-picker{
+    margin-top:18px; display:flex; gap:12px; flex-wrap:wrap;
+  }
+  .platform-card{
+    flex:1; min-width:150px; max-width:240px; display:flex; align-items:center; gap:12px;
+    padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,0.08);
+    background:rgba(255,255,255,0.025); box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 20px rgba(0,0,0,0.14);
+    color:var(--text-hi); text-decoration:none; transition:transform .18s ease, border-color .18s ease, background .18s ease;
+  }
+  .platform-card:hover{ transform:translateY(-1px); border-color:rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); }
+  .platform-icon{width:20px; height:20px; display:grid; place-items:center; color:var(--text-hi); opacity:0.8;}
+  .platform-icon svg{width:18px; height:18px; fill:currentColor;}
+  .platform-icon.linux-icon svg{fill:none; stroke:currentColor; stroke-width:3.5; stroke-linecap:round; stroke-linejoin:round;}
+  .platform-icon.linux-icon svg .linux-eye, .platform-icon.linux-icon svg .linux-beak{fill:currentColor; stroke:none;}
+  .platform-card strong{display:block; font-size:14px; letter-spacing:-0.02em;}
+  .platform-card span{display:block; font-size:11px; color:var(--text-low);}
+
+  .hero-card{
+    background:linear-gradient(180deg, rgba(13,17,20,0.82), rgba(9,12,14,0.84));
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+    backdrop-filter:blur(12px);
+  }
+
+  .favicon-stage{position:relative; display:grid; place-items:center; width:100%; min-height:366px; justify-self:center; overflow:visible; perspective:700px;}
+  .favicon-stage img{width:200px; height:200px; object-fit:contain; position:relative; z-index:1; transform:translateX(1px) rotateX(var(--tilt-y, 0deg)) rotateY(var(--tilt-x, 0deg)); transform-style:preserve-3d; transition:transform .18s cubic-bezier(.2,.7,.2,1); filter:drop-shadow(0 0 2px rgba(255,255,255,0.95)) drop-shadow(0 0 8px rgba(255,255,255,0.52)) drop-shadow(0 0 18px rgba(255,255,255,0.24)); animation:iconOutlineGlow 2.8s ease-in-out infinite; will-change:transform;}
+  @keyframes iconOutlineGlow{0%,100%{filter:drop-shadow(0 0 2px rgba(255,255,255,0.9)) drop-shadow(0 0 7px rgba(255,255,255,0.42)) drop-shadow(0 0 16px rgba(255,255,255,0.18))}50%{filter:drop-shadow(0 0 3px rgba(255,255,255,1)) drop-shadow(0 0 12px rgba(255,255,255,0.7)) drop-shadow(0 0 26px rgba(255,255,255,0.34))}}
+
+  .video-shell{
+    max-width:780px; margin:0 auto;
+    background:linear-gradient(180deg, rgba(14,17,20,0.96), rgba(9,12,15,0.98));
+    border:1px solid rgba(255,255,255,0.08); border-radius:18px; overflow:hidden; box-shadow:var(--shadow);
+  }
+  .preview-slideshow{
+    position:relative; min-height:0; aspect-ratio:5 / 3; overflow:hidden; isolation:isolate;
+    background:radial-gradient(circle at 20% 16%, rgba(255,255,255,0.08), transparent 22%), linear-gradient(180deg, rgba(10,12,15,1), rgba(11,16,20,1));
+  }
+  .preview-slideshow::before,
+  .preview-slideshow::after{
+    content:""; position:absolute; inset:-8%; z-index:1; pointer-events:none; opacity:0;
+    transition:opacity .42s ease;
+  }
+  .preview-slideshow::before{
+    background:
+      radial-gradient(circle at 28% 34%, rgba(186,226,255,0.38), transparent 20%),
+      radial-gradient(circle at 72% 64%, rgba(136,178,255,0.24), transparent 23%),
+      linear-gradient(135deg, rgba(255,255,255,0.13), transparent 46%, rgba(158,201,255,0.16));
+    filter:blur(24px); transform:scale(1.08);
+  }
+  .preview-slideshow::after{
+    background:linear-gradient(108deg, transparent 32%, rgba(255,255,255,0.22) 50%, transparent 68%);
+    mix-blend-mode:screen; transform:translateX(-42%) skewX(-12deg);
+  }
+  .preview-photo{
+    width:100%; height:100%; display:block; object-fit:contain; object-position:center; background:#070b0e;
+    transform:scale(1.001); filter:blur(0) saturate(1) brightness(1); opacity:1;
+    transition:filter .72s cubic-bezier(.2,.7,.2,1), transform 1.1s cubic-bezier(.2,.7,.2,1), opacity .32s ease;
+    will-change:filter, transform;
+  }
+  .preview-mark{
+    position:absolute; top:50%; left:50%; z-index:2; width:clamp(72px, 16%, 128px); height:auto;
+    opacity:0; pointer-events:none; mix-blend-mode:screen;
+    transform:translate(-50%, -50%) scale(.74);
+    filter:brightness(0) invert(1) drop-shadow(0 0 18px rgba(215,235,255,.72));
+    transition:opacity .26s ease, transform .72s cubic-bezier(.2,.7,.2,1);
+  }
+  .preview-slideshow.is-transitioning::before,
+  .preview-slideshow.is-transitioning::after{opacity:1;}
+  .preview-slideshow.is-transitioning::after{animation:previewLightPass 1.05s cubic-bezier(.2,.7,.2,1) both;}
+  .preview-slideshow.is-transitioning .preview-photo{
+    filter:blur(18px) saturate(1.18) brightness(1.07); transform:scale(1.065);
+  }
+  .preview-slideshow.is-transitioning .preview-mark{opacity:.48; transform:translate(-50%, -50%) scale(1.04);}
+  .preview-photo.is-swapping{opacity:.84;}
+  @keyframes previewLightPass{
+    from{transform:translateX(-46%) skewX(-12deg);}
+    to{transform:translateX(46%) skewX(-12deg);}
+  }
+  @media (max-width:640px){.video-shell{max-width:100%;}.preview-slideshow{min-height:0;}.preview-photo{height:100%;}}
+  .privacy-wrap{margin-top:36px; display:grid; grid-template-columns:1.2fr .8fr; gap:18px;}
+  @media (max-width:860px){ .privacy-wrap{grid-template-columns:1fr;} }
+  .privacy-panel{
+    background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:24px 22px; box-shadow:0 18px 38px -22px rgba(0,0,0,0.7);
+  }
+  .privacy-panel h3{margin-bottom:14px; font-family:var(--font-head); font-size:24px; letter-spacing:-0.03em;}
+  .privacy-panel p, .privacy-panel li{color:var(--text-mid); font-size:15px; line-height:1.7;}
+  .privacy-panel ul{margin-top:12px; padding-left:18px; display:grid; gap:8px;}
+  .privacy-badge{display:flex; align-items:center; justify-content:center; min-height:100%; text-align:center; background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));}
+  .privacy-badge-inner{padding:22px 18px;}
+  .privacy-badge .tag{display:inline-block; margin-bottom:12px; padding:5px 8px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); font-family:var(--font-mono); font-size:10px; letter-spacing:0.08em; text-transform:uppercase;}
+  .privacy-badge strong{display:block; font-family:var(--font-head); font-size:28px; letter-spacing:-0.04em; margin-bottom:8px;}
+  .privacy-badge span{color:var(--text-mid); font-size:14px;}
+  .card-top{
+    display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border);
+  }
+  .traffic{display:flex; gap:8px;}
+  .traffic span{display:block; width:11px; height:11px; border-radius:50%;}
+  .traffic span:nth-child(1){background:rgba(255,255,255,0.9);} .traffic span:nth-child(2){background:rgba(255,255,255,0.6);} .traffic span:nth-child(3){background:rgba(255,255,255,0.45);}
+  .status-tag{font-family:var(--font-mono); font-size:11px; color:var(--text-low); letter-spacing:0.08em; text-transform:uppercase;}
+  .card-body{
+    padding:22px 18px 20px; background:radial-gradient(circle at 18% 14%, rgba(255,255,255,0.08), transparent 16%);
+  }
+  .mini-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:14px;
+  }
+  .mini-panel{
+    background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:14px 12px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .mini-panel label{
+    display:block; font-size:11px; color:var(--text-low); text-transform:uppercase; letter-spacing:0.08em; font-family:var(--font-mono);
+  }
+  .mini-panel strong{
+    display:block; margin-top:8px; font-size:25px; line-height:1; letter-spacing:-0.04em; font-family:var(--font-head);
+  }
+  .mini-panel small{
+    display:block; margin-top:8px; color:var(--text-mid); font-size:12px;
+  }
+  .mini-bars{margin-top:18px; display:flex; align-items:flex-end; gap:7px; height:96px;}
+  .mini-bars span{display:block; flex:1; border-radius:6px 6px 0 0; background:linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.2));}
+  .mini-bars span:nth-child(2){background:linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.18));}
+  .mini-bars span:nth-child(3){background:linear-gradient(180deg, rgba(255,255,255,0.52), rgba(255,255,255,0.12));}
+
+  .section{padding:44px 0 12px;}
+  .section-head{max-width:620px; margin-bottom:20px;}
+  .section-head h2{
+    font-family:var(--font-head); font-size:clamp(28px,3vw,42px); letter-spacing:-0.04em; line-height:1.05;
+  }
+  .section-head p{margin-top:12px; color:var(--text-mid); font-size:16px;}
+
+  .feature-grid{
+    display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:18px;
+  }
+  @media (max-width:900px){ .feature-grid{grid-template-columns:1fr;} }
+  .feature-card{
+    background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:22px 18px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), 0 14px 30px rgba(0,0,0,0.12);
+  }
+  .feature-card .tag{
+    display:inline-flex; padding:5px 9px; border-radius:8px; background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.08); color:var(--text-hi); font-family:var(--font-mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase;
+  }
+  .feature-card h3{margin-top:14px; font-family:var(--font-head); font-size:22px; letter-spacing:-0.03em;}
+  .feature-card p{margin-top:10px; color:var(--text-mid); font-size:15px;}
+
+  .download-wrap{padding-top:18px;}
+  .download-panel{
+    background:linear-gradient(180deg, rgba(16,23,27,0.88), rgba(9,12,15,0.9));
+    border:1px solid rgba(255,255,255,0.08); border-radius:18px; padding:28px 22px; display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap; align-items:center; box-shadow:var(--shadow);
+  }
+  .download-panel h3{font-family:var(--font-head); font-size:clamp(24px,2.6vw,34px); letter-spacing:-0.04em;}
+  .version{margin-top:8px; color:var(--text-low); font-family:var(--font-mono); font-size:13px;}
+  .download-actions{display:flex; gap:12px; flex-wrap:wrap;}
+
+  footer{
+    border-top:1px solid var(--border); margin-top:40px; padding:22px 0 10px; color:var(--text-low); font-size:13px;
+  }
+  .foot-inner{display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+  footer a{text-decoration:none; color:var(--text-mid);} footer a:hover{color:var(--text-hi);}
+
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(16px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+  .hero-inner > * { animation:fadeUp .7s ease both; }
+  .hero-inner > *:nth-child(2){ animation-delay:.08s; }
+  .feature-card { transition:transform .2s ease, border-color .2s ease; }
+  .feature-card:hover { transform:translateY(-2px); border-color:rgba(255,255,255,0.14); }
+
+  .hero h1{
+    font-family:var(--font-head);
+    font-size:clamp(34px, 4.6vw, 52px);
+    line-height:1.08;
+    font-weight:700;
+    letter-spacing:-0.01em;
+    max-width:14ch;
+  }
+  .hero p.lede{
+    margin-top:22px;
+    font-size:18px;
+    color:var(--text-mid);
+    max-width:46ch;
+  }
+  .hero-actions{
+    margin-top:34px;
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .btn{
+    display:inline-flex; align-items:center; gap:10px;
+    padding:12px 20px;
+    border-radius:9px;
+    font-size:15px;
+    font-weight:600;
+    text-decoration:none;
+    border:1px solid transparent;
+    transition:transform .15s ease, border-color .15s ease;
+  }
+  .btn:hover{transform:translateY(-1px);}
+  .btn-primary{background:var(--accent); color:#0B0C0F;}
+  .btn-ghost{background:var(--bg-2); color:var(--text-hi); border-color:var(--border);}
+  .btn-ghost:hover{border-color:var(--text-low);}
+  .btn svg{width:16px; height:16px; flex:none;}
+
+  .release-note{
+    margin-top:14px;
+    font-family:var(--font-mono);
+    font-size:12.5px;
+    color:var(--text-low);
+  }
+
+  .hero-visual{ position:relative; }
+
+  .media-stage{
+    position:relative;
+    background:linear-gradient(180deg, rgba(16,26,38,0.98), rgba(12,18,28,0.96));
+    border:1px solid rgba(94,226,255,0.22);
+    border-radius:22px;
+    overflow:hidden;
+    min-height:420px;
+    box-shadow:0 24px 60px -22px rgba(0,0,0,0.8), 0 0 0 1px rgba(94,226,255,0.08);
+    transform:rotate(-1.2deg);
+    transition:transform .35s ease, box-shadow .35s ease;
+  }
+  .media-stage:hover{ transform:rotate(-1.2deg) translateY(-4px); box-shadow:0 28px 70px -22px rgba(0,0,0,0.82), 0 0 0 1px rgba(94,226,255,0.14); }
+
+  .media-topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 16px; border-bottom:1px solid var(--border);
+    background:rgba(255,255,255,0.02);
+  }
+  .traffic{display:flex; gap:7px; align-items:center;}
+  .traffic span{display:block; width:10px; height:10px; border-radius:50%; background:var(--accent); opacity:0.78;}
+  .traffic span:nth-child(1){background:rgba(94,226,255,0.9);} .traffic span:nth-child(2){background:rgba(122,184,255,0.9);} .traffic span:nth-child(3){background:rgba(124,235,195,0.9);}
+  .media-label{font-family:var(--font-mono); font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-low);}
+
+  .media-screen{
+    position:relative; height:100%; min-height:360px;
+    background:
+      radial-gradient(circle at 20% 18%, rgba(94,226,255,0.18), transparent 18%),
+      linear-gradient(180deg, rgba(13,20,28,1), rgba(9,15,22,1));
+    padding:26px 22px 20px;
+  }
+  .media-grid{
+    position:absolute; inset:60px 22px 20px;
+    border-radius:14px;
+    background:
+      linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px),
+      rgba(15,23,36,0.72);
+    background-size: 26px 26px, 26px 26px, auto;
+    border:1px solid rgba(255,255,255,0.04);
+  }
+  .media-cards{
+    position:absolute; inset:74px 40px 60px 40px; display:flex; gap:18px; align-items:flex-end; justify-content:space-between;
+  }
+  .pulse-card{
+    flex:1; max-width:180px; background:rgba(17,27,38,0.86); border:1px solid rgba(94,226,255,0.18); border-radius:14px; box-shadow:0 18px 40px -26px rgba(0,0,0,0.8); padding:14px 14px 12px;
+  }
+  .pulse-card.tall{height:170px;}
+  .pulse-card.short{height:120px;}
+  .card-tag{ display:inline-block; font-family:var(--font-mono); font-size:10px; text-transform:uppercase; letter-spacing:0.08em; padding:4px 7px; border-radius:6px; color:var(--accent); background:var(--accent-dim); border:1px solid rgba(94,226,255,0.18); }
+  .pulse-name{margin-top:12px; font-size:13px; color:var(--text-hi); font-weight:600;}
+  .pulse-meta{margin-top:6px; font-size:11px; color:var(--text-mid); line-height:1.6;}
+
+  .play-pill{
+    position:absolute; left:50%; bottom:26px; transform:translateX(-50%);
+    display:flex; align-items:center; gap:10px; background:rgba(9,15,22,0.9); border:1px solid rgba(94,226,255,0.2); border-radius:999px; padding:10px 16px; color:var(--text-hi); font-size:12px; letter-spacing:0.08em; text-transform:uppercase;
+  }
+  .play-pill::before{
+    content:""; width:10px; height:10px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 6px rgba(94,226,255,0.12);
+  }
+
+  .feature-grid{
+    display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:20px; margin-top:18px;
+  }
+  @media (max-width:900px){ .feature-grid{grid-template-columns:1fr;} }
+  .mini-feature{
+    background:var(--bg-1); border:1px solid var(--border); border-radius:14px; padding:22px 18px; box-shadow:0 14px 34px -20px rgba(0,0,0,0.7);
+  }
+  .mini-feature .tag{display:inline-flex; align-items:center; gap:8px; padding:5px 9px; border-radius:6px; background:var(--accent-dim); color:var(--accent); font-family:var(--font-mono); font-size:11px; margin-bottom:14px; }
+  .mini-feature h3{font-family:var(--font-head); font-size:19px; margin-bottom:10px;}
+  .mini-feature p{color:var(--text-mid); font-size:14.5px;}
+  .signal-list{margin-top:18px; display:flex; flex-direction:column; gap:10px;}
+  .signal-row{display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:12px; color:var(--text-mid); padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:rgba(255,255,255,0.02);}
+  .signal-row strong{color:var(--text-hi); font-weight:600;}
+  .signal-row .level{width:58px; height:6px; background:rgba(255,255,255,0.05); border-radius:999px; overflow:hidden;}
+  .signal-row .level span{display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg, var(--accent), var(--accent-strong));}
+
+  .value-grid{
+    display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:20px; margin-top:16px;
+  }
+  @media (max-width:700px){ .value-grid{grid-template-columns:1fr;} }
+  .value-card{
+    background:var(--bg-1); border:1px solid var(--border); border-radius:14px; padding:24px 22px; min-height:200px;
+    box-shadow:0 18px 36px -25px rgba(0,0,0,0.6);
+  }
+  .value-card .icon{width:42px; height:42px; border-radius:10px; display:grid; place-items:center; background:var(--accent-dim); color:var(--accent); font-size:18px; margin-bottom:14px;}
+  .value-card h3{font-family:var(--font-head); font-size:20px; margin-bottom:8px;}
+  .value-card p{color:var(--text-mid); font-size:14.5px;}
+
+  /* ---------- Section headers ---------- */
+  .section{padding:88px 0;}
+  .section-head{max-width:56ch; margin-bottom:52px;}
+  .section-head h2{
+    font-family:var(--font-head);
+    font-size:clamp(26px,3vw,34px);
+    font-weight:700;
+    letter-spacing:-0.01em;
+  }
+  .section-head p{margin-top:14px; color:var(--text-mid); font-size:16px;}
+  .section.alt{background:var(--bg-1); border-top:1px solid var(--border); border-bottom:1px solid var(--border);}
+
+  /* ---------- Node chain (entity types) ---------- */
+  .chain{
+    display:flex;
+    gap:0;
+    overflow-x:auto;
+    padding-bottom:8px;
+    margin:0 -4px;
+  }
+  .node{
+    flex:0 0 auto;
+    width:196px;
+    padding:16px 16px 18px;
+    margin:0 5px;
+    background:var(--bg-1);
+    border:1px solid var(--border);
+    border-left-width:3px;
+    border-radius:9px;
+    position:relative;
+    box-shadow:0 14px 28px -16px rgba(0,0,0,0.7);
+    transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+  }
+  .node:hover{
+    transform:translateY(-3px);
+    box-shadow:0 20px 36px -14px rgba(0,0,0,0.75);
+  }
+  .node::after{
+    content:"";
+    position:absolute;
+    top:50%; right:-9px;
+    width:9px; height:1px;
+    border-top:1px dashed var(--border);
+    animation:dashPulse 2.6s ease-in-out infinite;
+  }
+  .chain .node:last-child::after{display:none;}
+  .node .pill{
+    display:inline-block;
+    font-size:10.5px;
+    font-weight:600;
+    padding:3px 8px;
+    border-radius:5px;
+    background:var(--bg-2);
+    margin-bottom:10px;
+  }
+  .node b{display:block; font-size:14.5px; font-weight:600; font-family:var(--font-mono); word-break:break-word;}
+  .node span{display:block; margin-top:6px; font-size:12px; color:var(--text-low); line-height:1.4;}
+
+  @keyframes dashPulse{
+    0%, 100%{opacity:.4;}
+    50%{opacity:1;}
+  }
+
+  /* ---------- Feature rows ---------- */
+  .feature-row{
+    display:grid;
+    grid-template-columns:0.9fr 1.1fr;
+    gap:48px;
+    align-items:center;
+    padding:56px 0;
+    border-top:1px solid var(--border);
+  }
+  .feature-row:first-of-type{border-top:none;}
+  .feature-row.reverse{grid-template-columns:1.1fr 0.9fr;}
+  .feature-row.reverse .feature-copy{order:2;}
+  @media (max-width:860px){
+    .feature-row, .feature-row.reverse{grid-template-columns:1fr;}
+    .feature-row.reverse .feature-copy{order:0;}
+  }
+  .feature-copy h3{
+    font-family:var(--font-head);
+    font-size:23px;
+    font-weight:700;
+    margin-bottom:12px;
+  }
+  .feature-copy p{color:var(--text-mid); font-size:15.5px;}
+  .feature-copy .tag{
+    display:inline-block;
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    color:var(--accent);
+    background:var(--accent-dim);
+    padding:4px 9px;
+    border-radius:5px;
+    margin-bottom:14px;
+  }
+
+  /* ---------- Privacy / about ---------- */
+  .about-grid{
+    display:grid;
+    grid-template-columns:1.2fr 1fr;
+    gap:20px;
+  }
+  @media (max-width:800px){ .about-grid{grid-template-columns:1fr;} }
+  .panel{
+    background:var(--bg-1);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:32px;
+    box-shadow:0 20px 40px -20px rgba(0,0,0,0.7);
+  }
+  .panel h3{font-family:var(--font-head); font-size:21px; font-weight:700; margin-bottom:16px;}
+  .panel ul{list-style:none; display:flex; flex-direction:column; gap:10px;}
+  .panel li{
+    font-size:15px; color:var(--text-mid);
+    padding-left:20px; position:relative;
+  }
+  .panel li::before{
+    content:"—";
+    position:absolute; left:0; color:var(--accent);
+  }
+  .panel a.tg{display:inline-block; margin-top:18px; color:var(--accent); text-decoration:none; font-size:14.5px; font-weight:600;}
+  .panel-flag{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; gap:6px;
+  }
+  .panel-flag svg{width:52px; height:auto; margin-bottom:6px;}
+  .panel-flag b{font-family:var(--font-head); font-size:18px;}
+  .panel-flag span{color:var(--text-mid); font-size:14px; max-width:26ch;}
+
+  /* ---------- Download ---------- */
+  .download-panel{
+    position:relative;
+    overflow:hidden;
+    background:var(--bg-1);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:44px;
+    box-shadow:0 24px 48px -20px rgba(0,0,0,0.7);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:32px;
+    flex-wrap:wrap;
+  }
+  .download-panel h2{
+    font-family:var(--font-head);
+    font-size:26px;
+    font-weight:700;
+  }
+  .download-panel .version{
+    font-family:var(--font-mono);
+    font-size:13px;
+    color:var(--text-low);
+    margin-top:8px;
+  }
+  .download-actions{display:flex; gap:12px; flex-wrap:wrap;}
+  .download-actions{position:relative; z-index:2;}
+  .download-thanks{
+    position:fixed; right:24px; bottom:24px; z-index:60; width:min(360px, calc(100vw - 32px));
+    padding:18px 46px 18px 18px; border:1px solid rgba(255,255,255,.16); border-radius:16px;
+    background:#111111; box-shadow:0 24px 48px -20px rgba(0,0,0,.76); backdrop-filter:blur(16px);
+    opacity:0; pointer-events:none; transform:translateY(18px); transition:opacity .24s ease, transform .24s ease;
+  }
+  .download-thanks.is-visible{opacity:1; pointer-events:auto; transform:translateY(0);}
+  .download-thanks strong{display:block; font-family:var(--font-head); font-size:18px; letter-spacing:-.02em;}
+  .download-thanks p{margin-top:5px; color:var(--text-mid); font-size:13px; line-height:1.5;}
+  .download-thanks a{display:inline-flex; margin-top:12px; padding:8px 11px; border-radius:8px; background:#fff; border:1px solid #fff; color:#0A0D10; font-size:12px; font-weight:700; text-decoration:none;}
+  .download-thanks a:hover{background:rgba(255,255,255,.88);}
+  .download-thanks button{position:absolute; top:10px; right:10px; width:27px; height:27px; border:0; border-radius:8px; background:transparent; color:var(--text-mid); cursor:pointer; font-size:20px; line-height:1;}
+  .download-thanks button:hover{background:rgba(255,255,255,.08); color:var(--text-hi);}
+  .release-download-frame{display:none;}
+  .download-pet{
+    position:absolute; left:50%; right:auto; bottom:-88px; z-index:1; width:70px; height:70px; margin-left:-35px;
+    pointer-events:none; transform-origin:center bottom;
+    animation:downloadPetVisit 5.6s cubic-bezier(.2,.8,.2,1) infinite;
+  }
+  .download-pet img{
+    width:100%; height:100%; object-fit:contain;
+    filter:drop-shadow(0 0 3px rgba(255,255,255,.85)) drop-shadow(0 0 12px rgba(255,255,255,.32));
+  }
+  @keyframes downloadPetVisit{
+    0%,40%{opacity:0; transform:translate3d(0,0,0) scale(.68) rotateY(0deg);}
+    46%{opacity:1; transform:translate3d(0,-84px,0) scale(1) rotateY(0deg);}
+    54%{transform:translate3d(-10px,-84px,0) scale(1) rotateY(-20deg);}
+    62%{transform:translate3d(7px,-84px,0) scale(1) rotateY(20deg);}
+    68%{transform:translate3d(-6px,-84px,0) scale(1) rotateY(-16deg);}
+    74%{transform:translate3d(13px,-84px,0) scale(1) rotateY(18deg);}
+    80%{transform:translate3d(31px,-84px,0) scale(1) rotateY(-12deg);}
+    86%{transform:translate3d(49px,-84px,0) scale(1) rotateY(16deg);}
+    91%{opacity:1; transform:translate3d(49px,-84px,0) scale(1) rotateY(-8deg);}
+    100%{opacity:0; transform:translate3d(49px,0,0) scale(.68) rotateY(0deg);}
+  }
+  @media (max-width:720px){.download-pet{left:auto; right:32px; width:58px; height:58px; margin-left:0;}.download-pet{animation:none; display:none;}}
+
+  /* ---------- Footer ---------- */
+  footer{
+    border-top:1px solid var(--border);
+    padding:32px 0;
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+    font-size:13px;
+    color:var(--text-low);
+  }
+  footer a{color:var(--text-low); text-decoration:none;}
+  footer a:hover{color:var(--text-mid);}
+
+  /* ---------- Reveal on scroll ---------- */
+  .reveal{
+    opacity:0;
+    transform:translateY(22px);
+    transition:opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1);
+  }
+  .reveal.is-visible{opacity:1; transform:translateY(0);}
+
+  /* ---------- Hero entrance (runs once on load) ---------- */
+  .hero-in{opacity:0; transform:translateY(16px); animation:heroIn .8s cubic-bezier(.2,.7,.2,1) forwards;}
+  .hero-in.d1{animation-delay:.05s;}
+  .hero-in.d2{animation-delay:.18s;}
+  .hero-in.d3{animation-delay:.3s;}
+  .hero-in.d4{animation-delay:.22s;}
+  @keyframes heroIn{
+    to{opacity:1; transform:translateY(0);}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .btn{transition:none;}
+    .reveal{opacity:1; transform:none; transition:none;}
+    .hero-in{opacity:1; transform:none; animation:none;}
+    .frame, .node{transition:none;}
+    .node::after{animation:none;}
+    .download-pet{display:none;}
+  }
+</style>
+</head>
+<body class="board-bg">
+
+<div class="site-shell">
+  <header>
+    <div class="wrap">
+      <nav>
+        <div class="logo">STALK</div>
+        <ul class="nav-links">
+          <li><a href="#features" data-i18n="features">Features</a></li>
+          <li><a href="#download" data-i18n="download">Download</a></li>
+          <li><a href="privacy.html" data-i18n="privacy">Privacy</a></li>
+          <li><a href="https://github.com/stalk-project1331/stalk" target="_blank" rel="noopener">GitHub</a></li>
+        </ul>
+        <div class="lang-switch" aria-label="language switcher">
+          <button class="lang-btn is-active" type="button" data-lang="en">EN</button>
+          <button class="lang-btn" type="button" data-lang="ru">RU</button>
+          <button class="lang-btn" type="button" data-lang="ka">KA</button>
+        </div>
+        <a class="nav-btn primary" href="#download" data-i18n="download">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap hero-inner">
+        <div>
+          <div class="eyebrow" data-i18n="eyebrow">OSINT • investigation board</div>
+          <h1 data-i18n="heroTitle">Map evidence. Reveal connections.</h1>
+          <p class="lede" data-i18n="heroText">STALK helps you organize entities, evidence, and relationships in one clean workspace so investigations stay structured, traceable, and easy to review.</p>
+
+          <div class="cta-row">
+            <a class="btn primary" href="#download">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>
+              <span data-i18n="downloadStalk">Download STALK</span>
+            </a>
+            <a class="btn secondary" href="https://github.com/stalk-project1331/stalk/releases/latest" target="_blank" rel="noopener" data-i18n="githubReleases">GitHub releases</a>
+          </div>
+
+          <div class="platform-picker">
+            <a class="platform-card" id="platform-windows" href="https://github.com/stalk-project1331/stalk/releases/latest">
+              <span class="platform-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 5.5 10 4.4V11H3V5.5ZM11 4.3 21 3v8H11V4.3ZM3 12h7v6.6L3 17.5V12Zm8 0h10v8l-10-1.4V12Z"/></svg></span>
+              <span>
+                <strong>Windows</strong>
+                <span data-i18n="installer">installer</span>
+              </span>
+            </a>
+            <a class="platform-card" id="platform-linux" href="https://github.com/stalk-project1331/stalk/releases/latest">
+              <span class="platform-icon linux-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 7c-10 0-16 10-16 23 0 5-4 8-7 12-3 4-2 10 2 12 5 2 9-4 12-8 2 8 5 12 9 12s7-4 9-12c3 4 7 10 12 8 4-2 5-8 2-12-3-4-7-7-7-12C48 17 42 7 32 7Z"/><circle class="linux-eye" cx="26" cy="26" r="2.8"/><circle class="linux-eye" cx="38" cy="26" r="2.8"/><path class="linux-beak" d="M32 31l-4 5h8Z"/></svg></span>
+              <span>
+                <strong>Linux</strong>
+                <span data-i18n="linuxFormats">AppImage / deb</span>
+              </span>
+            </a>
+          </div>
+
+          <div class="meta-line" id="version-tag" data-i18n="loadingRelease">loading latest release…</div>
+        </div>
+
+        <div class="favicon-stage" aria-label="STALK favicon">
+          <img src="favicon.svg" alt="STALK logo" />
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <div class="wrap">
+        <div class="section-head">
+          <h2 data-i18n="featuresTitle">Why STALK is built for faster analysis</h2>
+          <p data-i18n="featuresText">Nothing distracting: just the context you need, visible relationships, and a clear case workflow that keeps your investigation organized.</p>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature-card">
+            <span class="tag">Entity</span>
+            <h3 data-i18n="entityTitle">Structured objects</h3>
+            <p data-i18n="entityText">People, domains, IPs, facts, and companies stay organized in a consistent model instead of a cluttered note dump.</p>
+          </article>
+
+          <article class="feature-card">
+            <span class="tag">Links</span>
+            <h3 data-i18n="linksTitle">Visible relationships</h3>
+            <p data-i18n="linksText">Every connection between entities adds context, helping you spot patterns and build a clearer picture of the case.</p>
+          </article>
+
+          <article class="feature-card">
+            <span class="tag">Case</span>
+            <h3 data-i18n="caseTitle">Case-based workflow</h3>
+            <p data-i18n="caseText">Each investigation stays isolated and traceable, with all collected data preserved in a clean and readable structure.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="interface-preview-title">
+      <div class="wrap">
+        <div class="section-head">
+          <h2 id="interface-preview-title" data-i18n="videoTitle">Interface preview</h2>
+        </div>
+
+        <div class="video-shell">
+          <div class="preview-slideshow" id="interface-slideshow" aria-label="STALK interface preview">
+            <img class="preview-photo" src="assets/1.png" alt="STALK interface" />
+            <img class="preview-mark" src="favicon.svg" alt="" aria-hidden="true" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section download-wrap" id="download">
+      <div class="wrap">
+        <div class="download-panel">
+          <div>
+            <h3 data-i18n="downloadStalk">Download STALK</h3>
+            <div class="version" data-i18n="stableRelease">latest stable release</div>
+          </div>
+
+          <div class="download-actions">
+            <a id="btn-windows" class="btn primary" href="https://github.com/stalk-project1331/stalk/releases/latest">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10 4.4V11H3V5.5ZM11 4.3 21 3v8H11V4.3ZM3 12h7v6.6L3 17.5V12Zm8 0h10v8l-10-1.4V12Z"/></svg>
+              <span data-i18n="windows">Windows</span>
+            </a>
+            <a id="btn-linux" class="btn secondary" href="https://github.com/stalk-project1331/stalk/releases/latest">
+              <svg class="linux-download-icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M32 7c-10 0-16 10-16 23 0 5-4 8-7 12-3 4-2 10 2 12 5 2 9-4 12-8 2 8 5 12 9 12s7-4 9-12c3 4 7 10 12 8 4-2 5-8 2-12-3-4-7-7-7-12C48 17 42 7 32 7Z"/><circle cx="26" cy="26" r="2.8" fill="currentColor" stroke="none"/><circle cx="38" cy="26" r="2.8" fill="currentColor" stroke="none"/><path d="M32 31l-4 5h8Z" fill="currentColor" stroke="none"/></svg>
+              <span data-i18n="linux">Linux</span>
+            </a>
+          </div>
+          <div class="download-pet" aria-hidden="true"><img src="favicon.svg" alt="" /></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="download-thanks" id="download-thanks" role="status" aria-live="polite" aria-atomic="true">
+    <button type="button" id="close-download-thanks" aria-label="Close">×</button>
+    <strong data-i18n="downloadThanksTitle">Thanks for downloading STALK!</strong>
+    <p data-i18n="downloadThanksText">Join our Telegram channel for release notes and updates.</p>
+    <a href="https://t.me/cyberstalker007" target="_blank" rel="noopener" data-i18n="joinTelegram">Join Telegram</a>
+  </aside>
+
+  <footer>
+    <div class="wrap foot-inner">
+      <div>STALK — OSINT Assistant</div>
+      <div><a href="privacy.html" data-i18n="privacyPolicy">Privacy Policy</a> · <a href="https://github.com/stalk-project1331/stalk" target="_blank" rel="noopener">GitHub</a> · <a href="https://t.me/cyberstalker007" target="_blank" rel="noopener">Telegram</a></div>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  const REPO = 'stalk-project1331/stalk';
+  const versionTag = document.getElementById('version-tag');
+  const winBtn = document.getElementById('btn-windows');
+  const linuxBtn = document.getElementById('btn-linux');
+  var currentLanguage = 'en';
+  var releaseVersion = '';
+  var translations = {
+    en: {
+      features: 'Features', download: 'Download', privacy: 'Privacy', eyebrow: 'OSINT • investigation board',
+      heroTitle: 'Map evidence. Reveal connections.', heroText: 'STALK helps you organize entities, evidence, and relationships in one clean workspace so investigations stay structured, traceable, and easy to review.',
+      downloadStalk: 'Download STALK', githubReleases: 'GitHub releases', installer: 'installer', linuxFormats: 'AppImage / deb', loadingRelease: 'loading latest release…',
+      featuresTitle: 'Why STALK is built for faster analysis', featuresText: 'Nothing distracting: just the context you need, visible relationships, and a clear case workflow that keeps your investigation organized.',
+      entityTitle: 'Structured objects', entityText: 'People, domains, IPs, facts, and companies stay organized in a consistent model instead of a cluttered note dump.',
+      linksTitle: 'Visible relationships', linksText: 'Every connection between entities adds context, helping you spot patterns and build a clearer picture of the case.',
+      caseTitle: 'Case-based workflow', caseText: 'Each investigation stays isolated and traceable, with all collected data preserved in a clean and readable structure.',
+      videoTitle: 'Interface preview', videoText: 'A short look at STALK in action.', demoVideo: 'demo video',
+      privacyTitle: 'Privacy Policy', privacyText: 'STALK is designed to help users organize investigation data in a secure and structured workspace. We respect the confidentiality of information processed through the application and the website.',
+      privacyOne: 'We do not sell or monetize personal data collected through the app or the download experience.', privacyTwo: 'Files, URLs, notes, and investigation data remain under the control of the user unless explicitly shared.', privacyThree: 'The app and website may collect only minimal technical data required to ensure correct downloads, stability, and support.', privacyFour: 'We may update this policy over time, and the latest version will be published on this page.',
+      confidential: 'confidential', privacyBadge: 'Data handling is kept minimal, local-first, and transparent.', stableRelease: 'latest stable release', privacyPolicy: 'Privacy Policy', windows: 'Windows', linux: 'Linux', latestRelease: 'latest release', openReleases: 'open releases on GitHub', downloadThanksTitle: 'Thanks for downloading STALK!', downloadThanksText: 'Join our Telegram channel for release notes and updates.', joinTelegram: 'Join Telegram'
+    },
+    ru: {
+      features: 'Возможности', download: 'Скачать', privacy: 'Конфиденциальность', eyebrow: 'OSINT • доска расследований',
+      heroTitle: 'Визуализируй данные. Находи связи.', heroText: 'STALK помогает собирать объекты, доказательства и связи в одном рабочем пространстве, чтобы расследование оставалось структурированным и понятным.',
+      downloadStalk: 'Скачать STALK', githubReleases: 'Релизы GitHub', installer: 'установщик', linuxFormats: 'AppImage / deb', loadingRelease: 'загрузка последнего релиза…',
+      featuresTitle: 'Почему STALK ускоряет анализ', featuresText: 'Ничего лишнего: нужный контекст, видимые связи и понятный рабочий процесс для каждого кейса.',
+      entityTitle: 'Структурированные объекты', entityText: 'Люди, домены, IP, факты и компании хранятся в единой структуре, а не теряются среди заметок.',
+      linksTitle: 'Связи всегда на виду', linksText: 'Каждая связь добавляет контекст и помогает быстрее замечать закономерности в кейсе.',
+      caseTitle: 'Работа по кейсам', caseText: 'Каждое расследование остаётся отдельным и понятным, а собранные данные сохраняются в чистой структуре.',
+      videoTitle: 'Превью интерфейса', videoText: 'Короткий взгляд на STALK в работе.', demoVideo: 'видео-демо',
+      privacyTitle: 'Политика конфиденциальности', privacyText: 'STALK помогает организовать данные расследований в защищённом и структурированном пространстве. Мы уважаем конфиденциальность информации, обрабатываемой приложением и сайтом.',
+      privacyOne: 'Мы не продаём и не монетизируем персональные данные, полученные через приложение или загрузку.', privacyTwo: 'Файлы, URL, заметки и данные расследований остаются под контролем пользователя, если он явно ими не поделился.', privacyThree: 'Приложение и сайт могут собирать только минимальные технические данные для загрузок, стабильности и поддержки.', privacyFour: 'Мы можем обновлять эту политику, а актуальная версия всегда будет опубликована на этой странице.',
+      confidential: 'конфиденциально', privacyBadge: 'Данные обрабатываются минимально, локально и прозрачно.', stableRelease: 'последняя стабильная версия', privacyPolicy: 'Политика конфиденциальности', windows: 'Windows', linux: 'Linux', latestRelease: 'последний релиз', openReleases: 'открыть релизы на GitHub', downloadThanksTitle: 'Спасибо за скачивание STALK!', downloadThanksText: 'Присоединяйся к нашему Telegram-каналу, чтобы получать новости и обновления.', joinTelegram: 'Вступить в Telegram'
+    },
+    ka: {
+      features: 'შესაძლებლობები', download: 'ჩამოტვირთვა', privacy: 'კონფიდენციალურობა', eyebrow: 'OSINT • გამოძიების დაფა',
+      heroTitle: 'მონაცემების ვიზუალიზაცია. კავშირების აღმოჩენა.', heroText: 'STALK გეხმარება ობიექტების, მტკიცებულებებისა და კავშირების ერთ სამუშაო სივრცეში ორგანიზებაში, რათა გამოძიება სტრუქტურირებული და გასაგები დარჩეს.',
+      downloadStalk: 'STALK-ის ჩამოტვირთვა', githubReleases: 'GitHub-ის რელიზები', installer: 'ინსტალერი', linuxFormats: 'AppImage / deb', loadingRelease: 'უახლესი რელიზის ჩატვირთვა…',
+      featuresTitle: 'რატომ აჩქარებს STALK ანალიზს', featuresText: 'არაფერი ზედმეტი: საჭირო კონტექსტი, ხილული კავშირები და მკაფიო სამუშაო პროცესი თითოეული საქმისთვის.',
+      entityTitle: 'სტრუქტურირებული ობიექტები', entityText: 'ადამიანები, დომენები, IP-ები, ფაქტები და კომპანიები ერთიან სტრუქტურაში ინახება.',
+      linksTitle: 'ხილული კავშირები', linksText: 'ობიექტებს შორის ყოველი კავშირი ამატებს კონტექსტს და კანონზომიერებების სწრაფად აღმოჩენაში გეხმარება.',
+      caseTitle: 'საქმეებზე დაფუძნებული სამუშაო', caseText: 'თითოეული გამოძიება ცალკე და თვალსაჩინოდ ინახება, ხოლო შეგროვებული მონაცემები სტრუქტურირებულია.',
+      videoTitle: 'ინტერფეისის წინასწარი ნახვა', videoText: 'STALK-ის მუშაობის მოკლე დემო.', demoVideo: 'ვიდეო დემო',
+      privacyTitle: 'კონფიდენციალურობის პოლიტიკა', privacyText: 'STALK შექმნილია გამოძიების მონაცემების უსაფრთხო და სტრუქტურირებულ სივრცეში ორგანიზებისთვის. ჩვენ პატივს ვცემთ აპლიკაციასა და საიტზე დამუშავებული ინფორმაციის კონფიდენციალურობას.',
+      privacyOne: 'ჩვენ არ ვყიდით და არ ვახდენთ აპლიკაციით ან ჩამოტვირთვით მიღებული პერსონალური მონაცემების მონეტიზაციას.', privacyTwo: 'ფაილები, URL-ები, ჩანაწერები და გამოძიების მონაცემები მომხმარებლის კონტროლში რჩება, თუ ისინი პირდაპირ არ გაზიარდა.', privacyThree: 'აპლიკაციამ და საიტმა შეიძლება შეაგროვოს მხოლოდ მინიმალური ტექნიკური მონაცემები ჩამოტვირთვისა და მხარდაჭერისთვის.', privacyFour: 'პოლიტიკა შეიძლება განახლდეს და მისი უახლესი ვერსია ყოველთვის ამ გვერდზე გამოქვეყნდება.',
+      confidential: 'კონფიდენციალური', privacyBadge: 'მონაცემების დამუშავება მინიმალური, ლოკალური და გამჭვირვალეა.', stableRelease: 'უახლესი სტაბილური ვერსია', privacyPolicy: 'კონფიდენციალურობის პოლიტიკა', windows: 'Windows', linux: 'Linux', latestRelease: 'უახლესი რელიზი', openReleases: 'რელიზების ნახვა GitHub-ზე', downloadThanksTitle: 'მადლობა STALK-ის ჩამოტვირთვისთვის!', downloadThanksText: 'შემოუერთდი ჩვენს Telegram-არხს სიახლეებისა და განახლებებისთვის.', joinTelegram: 'Telegram-ში შესვლა'
+    }
+  };
+
+  function applyLanguage(language) {
+    currentLanguage = translations[language] ? language : 'en';
+    var dictionary = translations[currentLanguage];
+    document.documentElement.lang = currentLanguage === 'ka' ? 'ka' : currentLanguage;
+    document.querySelectorAll('[data-i18n]').forEach(function (element) {
+      var value = dictionary[element.getAttribute('data-i18n')];
+      if (value) element.textContent = value;
+    });
+    if (versionTag) versionTag.textContent = releaseVersion ? dictionary.latestRelease + ': ' + releaseVersion : dictionary.loadingRelease;
+    document.querySelectorAll('.lang-btn').forEach(function (button) {
+      button.classList.toggle('is-active', button.getAttribute('data-lang') === currentLanguage);
+    });
+  }
+
+  fetch('https://api.github.com/repos/' + REPO + '/releases/latest')
+    .then(function (res) {
+      if (!res.ok) throw new Error('GitHub API responded ' + res.status);
+      return res.json();
+    })
+    .then(function (data) {
+      const version = data.tag_name || data.name || '';
+      releaseVersion = version;
+      const assets = data.assets || [];
+      const winAsset = assets.find(function (a) { return /\.(exe|msi)$/i.test(a.name); });
+      const linuxAsset = assets.find(function (a) { return /\.(AppImage|deb|rpm)$/i.test(a.name); });
+
+      if (winBtn) winBtn.href = winAsset ? winAsset.browser_download_url : data.html_url;
+      if (linuxBtn) linuxBtn.href = linuxAsset ? linuxAsset.browser_download_url : data.html_url;
+      if (versionTag) versionTag.textContent = translations[currentLanguage].latestRelease + ': ' + version;
+    })
+    .catch(function () {
+      if (winBtn) winBtn.href = 'https://github.com/' + REPO + '/releases/latest';
+      if (linuxBtn) linuxBtn.href = 'https://github.com/' + REPO + '/releases/latest';
+      if (versionTag) versionTag.textContent = translations[currentLanguage].openReleases;
+    });
+
+  var faviconStage = document.querySelector('.favicon-stage');
+  if (faviconStage) {
+    document.addEventListener('mousemove', function (event) {
+      var bounds = faviconStage.getBoundingClientRect();
+      var centerX = bounds.left + bounds.width / 2;
+      var centerY = bounds.top + bounds.height / 2;
+      var x = Math.max(-14, Math.min(14, (event.clientX - centerX) / (window.innerWidth / 2) * 14));
+      var y = Math.max(-14, Math.min(14, (event.clientY - centerY) / (window.innerHeight / 2) * -14));
+      faviconStage.style.setProperty('--tilt-x', x.toFixed(2) + 'deg');
+      faviconStage.style.setProperty('--tilt-y', y.toFixed(2) + 'deg');
+    });
+
+    document.addEventListener('mouseleave', function () {
+      faviconStage.style.setProperty('--tilt-x', '0deg');
+      faviconStage.style.setProperty('--tilt-y', '0deg');
+    });
+  }
+
+  var downloadThanks = document.getElementById('download-thanks');
+  var closeDownloadThanks = document.getElementById('close-download-thanks');
+  var downloadThanksTimer;
+
+  function showDownloadThanks() {
+    if (!downloadThanks) return;
+    window.clearTimeout(downloadThanksTimer);
+    downloadThanks.classList.add('is-visible');
+    downloadThanksTimer = window.setTimeout(function () {
+      downloadThanks.classList.remove('is-visible');
+    }, 8500);
+  }
+
+  function startReleaseDownload(url) {
+    if (!/\/releases\/download\//.test(url)) return;
+    var frame = document.createElement('iframe');
+    frame.className = 'release-download-frame';
+    frame.src = url;
+    frame.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(frame);
+    window.setTimeout(function () { frame.remove(); }, 60000);
+  }
+
+  [winBtn, linuxBtn].forEach(function (button) {
+    if (button) button.addEventListener('click', function (event) {
+      event.preventDefault();
+      showDownloadThanks();
+      startReleaseDownload(button.href);
+    });
+  });
+
+  if (closeDownloadThanks) {
+    closeDownloadThanks.addEventListener('click', function () {
+      window.clearTimeout(downloadThanksTimer);
+      downloadThanks.classList.remove('is-visible');
+    });
+  }
+
+  var slideshow = document.getElementById('interface-slideshow');
+  if (slideshow && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    var previewPhoto = slideshow.querySelector('.preview-photo');
+    var slideExtensions = ['png', 'webp', 'jpg', 'jpeg'];
+
+    function findNumberedSlide(number) {
+      return new Promise(function (resolve) {
+        var extensionIndex = 0;
+
+        function tryNextExtension() {
+          if (extensionIndex === slideExtensions.length) {
+            resolve(null);
+            return;
+          }
+          var source = 'assets/' + number + '.' + slideExtensions[extensionIndex++];
+          var image = new Image();
+          image.onload = function () { resolve(source); };
+          image.onerror = tryNextExtension;
+          image.src = source;
+        }
+
+        tryNextExtension();
+      });
+    }
+
+    function collectSlides(number, slides) {
+      findNumberedSlide(number).then(function (source) {
+        if (!source) {
+          startPreviewCycle(slides);
+          return;
+        }
+        slides.push(source);
+        collectSlides(number + 1, slides);
+      });
+    }
+
+    function startPreviewCycle(slideSources) {
+      var slideIndex = 0;
+
+      function cyclePreview() {
+        window.setTimeout(function () {
+          slideshow.classList.add('is-transitioning');
+
+          window.setTimeout(function () {
+            if (slideSources.length > 1 && previewPhoto) {
+              slideIndex = (slideIndex + 1) % slideSources.length;
+              previewPhoto.classList.add('is-swapping');
+              previewPhoto.src = slideSources[slideIndex];
+              window.setTimeout(function () { previewPhoto.classList.remove('is-swapping'); }, 160);
+            }
+          }, 520);
+
+          window.setTimeout(function () {
+            slideshow.classList.remove('is-transitioning');
+            cyclePreview();
+          }, 1100);
+        }, 3000);
+      }
+
+      cyclePreview();
+    }
+
+    collectSlides(1, []);
+  }
+
+  document.querySelectorAll('.lang-btn').forEach(function (button) {
+    button.addEventListener('click', function () {
+      applyLanguage(button.getAttribute('data-lang'));
+    });
+  });
+
+  applyLanguage('en');
+})();
+</script>
+
+</body>
+</html>
